@@ -1,0 +1,27 @@
+{
+  "name": "gestor-correos-electronicos",
+  "version": "1.0.0",
+  "description": "Gestor de Correos Electrónicos con Filtros Dinámicos (POO + Funcional en TypeScript con Vitest)",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "typescript",
+    "vitest",
+    "tdd",
+    "oop",
+    "functional-programming"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "@vitest/coverage-v8": "^1.3.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.3.1"
+  }
+}
