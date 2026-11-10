@@ -44,11 +44,9 @@ describe('GestorCorreos (RF-02 y RF-06: Envio y Gestion de Bandejas)', () => {
     });
 
     it('si se envia un correo que estaba en Borradores, debe dejar de pertenecer a Borradores', () => {
-      // Ponemos el correo en borradores primero
       gestor.guardarEnBorradores(correo);
       expect(gestor.obtenerBandeja(TipoBandeja.BORRADORES)).toHaveLength(1);
 
-      // Enviamos el correo
       gestor.enviar(correo);
 
       expect(gestor.obtenerBandeja(TipoBandeja.BORRADORES)).toHaveLength(0);
@@ -92,19 +90,18 @@ describe('GestorCorreos (RF-02 y RF-06: Envio y Gestion de Bandejas)', () => {
     });
 
     it('deberia restaurar un correo eliminado a su bandeja de origen', () => {
-      gestor.recibir(correo); // Origen: ENTRADA
+      gestor.recibir(correo);
       gestor.eliminar(correo.id);
 
       gestor.restaurar(correo.id);
 
-      // Vuelve a ENTRADA y sale de ELIMINADOS
       expect(gestor.obtenerBandeja(TipoBandeja.ENTRADA)).toHaveLength(1);
       expect(gestor.obtenerBandeja(TipoBandeja.ELIMINADOS)).toHaveLength(0);
       expect(gestor.obtenerUbicacion(correo.id)).toBe(TipoBandeja.ENTRADA);
     });
 
     it('deberia restaurar a Borradores si el correo fue eliminado desde Borradores', () => {
-      gestor.guardarEnBorradores(correo); // Origen: BORRADORES
+      gestor.guardarEnBorradores(correo);
       gestor.eliminar(correo.id);
 
       gestor.restaurar(correo.id);
@@ -118,6 +115,75 @@ describe('GestorCorreos (RF-02 y RF-06: Envio y Gestion de Bandejas)', () => {
       expect(() => {
         gestor.restaurar('no-esta-en-papelera');
       }).toThrow('No se puede restaurar el correo "no-esta-en-papelera" porque no esta en Eliminados.');
+    });
+  });
+
+  describe('Consultas de No Leidos (RF-08)', () => {
+    it('deberia obtener todos los correos no leidos de una bandeja', () => {
+      const correo2 = new Correo({
+        id: 'correo-2',
+        asunto: 'Consulta',
+        cuerpo: 'Duda sobre TP',
+        remitente,
+        destinatarios: [destinatario],
+      });
+
+      gestor.recibir(correo);
+      gestor.recibir(correo2);
+
+      expect(gestor.obtenerNoLeidos(TipoBandeja.ENTRADA)).toHaveLength(2);
+
+      correo.marcarComoLeido();
+
+      const noLeidos = gestor.obtenerNoLeidos(TipoBandeja.ENTRADA);
+      expect(noLeidos).toHaveLength(1);
+      expect(noLeidos[0]).toBe(correo2);
+    });
+  });
+
+  describe('Vista Transversal de Favoritos (RF-09)', () => {
+    it('deberia listar los favoritos de distintas bandejas activas sin duplicados', () => {
+      const correoEnviado = new Correo({
+        id: 'correo-env-1',
+        asunto: 'Envio TP',
+        cuerpo: 'Adjunto TP',
+        remitente,
+        destinatarios: [destinatario],
+      });
+
+      correo.marcarComoFavorito();
+      correoEnviado.marcarComoFavorito();
+
+      gestor.recibir(correo);
+      gestor.enviar(correoEnviado);
+
+      const favoritos = gestor.obtenerFavoritos();
+      expect(favoritos).toHaveLength(2);
+      expect(favoritos).toContain(correo);
+      expect(favoritos).toContain(correoEnviado);
+    });
+
+    it('marcar como favorito no debe mover el correo de su bandeja original', () => {
+      gestor.recibir(correo);
+      correo.marcarComoFavorito();
+
+      expect(gestor.obtenerUbicacion(correo.id)).toBe(TipoBandeja.ENTRADA);
+    });
+
+    it('un correo favorito en Eliminados no debe aparecer en la vista de favoritos hasta que se restaure', () => {
+      gestor.recibir(correo);
+      correo.marcarComoFavorito();
+
+      expect(gestor.obtenerFavoritos()).toHaveLength(1);
+
+      gestor.eliminar(correo.id);
+
+      expect(correo.favorito).toBe(true);
+      expect(gestor.obtenerFavoritos()).toHaveLength(0);
+
+      gestor.restaurar(correo.id);
+      expect(gestor.obtenerFavoritos()).toHaveLength(1);
+      expect(gestor.obtenerFavoritos()[0]).toBe(correo);
     });
   });
 });

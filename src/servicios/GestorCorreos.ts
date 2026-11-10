@@ -44,13 +44,11 @@ export class GestorCorreos {
   }
 
   enviar(correo: Correo): void {
-    // Si estaba en borradores, se retira de alli
     const bandejaBorradores = this.bandejas.get(TipoBandeja.BORRADORES)!;
     if (bandejaBorradores.contiene(correo.id)) {
       bandejaBorradores.quitar(correo.id);
     }
 
-    // Se agrega a la bandeja de Enviados
     const bandejaEnviados = this.bandejas.get(TipoBandeja.ENVIADOS)!;
     bandejaEnviados.agregar(correo);
   }
@@ -84,7 +82,7 @@ export class GestorCorreos {
     }
 
     if (ubicacionActual === TipoBandeja.ELIMINADOS) {
-      return; // Ya esta en eliminados
+      return;
     }
 
     const bandejaOrigen = this.bandejas.get(ubicacionActual)!;
@@ -101,5 +99,25 @@ export class GestorCorreos {
 
     const bandejaDestino = this.bandejas.get(restaurado.bandejaOrigen)!;
     bandejaDestino.agregar(restaurado.correo);
+  }
+
+  obtenerNoLeidos(tipo: TipoBandeja): ReadonlyArray<Correo> {
+    const correos = this.obtenerBandeja(tipo);
+    return correos.filter((correo) => !correo.leido);
+  }
+
+  obtenerFavoritos(): ReadonlyArray<Correo> {
+    const bandejasActivas: TipoBandeja[] = [
+      TipoBandeja.ENTRADA,
+      TipoBandeja.ENVIADOS,
+      TipoBandeja.BORRADORES,
+    ];
+
+    const todosLosActivos: Correo[] = [];
+    for (const tipo of bandejasActivas) {
+      todosLosActivos.push(...this.obtenerBandeja(tipo));
+    }
+
+    return todosLosActivos.filter((correo) => correo.favorito);
   }
 }
