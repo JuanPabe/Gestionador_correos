@@ -5,7 +5,7 @@ Implementado en **TypeScript** bajo **Node.js** con enfoque **TDD** utilizando *
 
 ---
 
-## 🛠️ Stack Tecnológico
+Stack Tecnológico
 - **Lenguaje:** TypeScript 5.x (modo estricto)
 - **Runtime:** Node.js (v20+)
 - **Testing Framework:** [Vitest](https://vitest.dev/) (TDD)
@@ -13,7 +13,7 @@ Implementado en **TypeScript** bajo **Node.js** con enfoque **TDD** utilizando *
 
 ---
 
-## 📁 Estructura del Proyecto
+Estructura del Proyecto
 
 ```text
 Gestionador_correos/
@@ -41,7 +41,7 @@ Gestionador_correos/
 
 ---
 
-## 🚀 Comandos Disponibles
+Comandos Disponibles
 
 - **Ejecutar tests una vez:**
   ```bash
