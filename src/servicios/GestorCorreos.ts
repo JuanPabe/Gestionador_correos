@@ -7,6 +7,7 @@ import {
   TipoBandeja,
 } from '../domain/bandejas/Bandeja';
 import { IBandeja } from '../domain/bandejas/IBandeja';
+import { textoLibreContiene } from '../domain/filtros/PredicadosCorreo';
 
 export interface OpcionesGestorCorreos {
   bandejaEntrada?: IBandeja<any>;
@@ -242,5 +243,15 @@ export class GestorCorreos {
     }
 
     return todosLosActivos.filter((correo) => correo.favorito);
+  }
+
+  // Busqueda libre funcional e inmutable sobre la Bandeja de Entrada (RF-04)
+  buscar(texto: string): ReadonlyArray<Correo> {
+    if (!texto || texto.trim().length === 0) {
+      return [];
+    }
+    const correosEntrada = this.obtenerBandeja(TipoBandeja.ENTRADA);
+    const predicado = textoLibreContiene(texto);
+    return correosEntrada.filter(predicado);
   }
 }
