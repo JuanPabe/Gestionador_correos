@@ -15,6 +15,14 @@ export interface OpcionesGestorCorreos {
   bandejaEliminados?: BandejaEliminados<any>;
 }
 
+// Matriz declarativa de transiciones fisicas permitidas entre bandejas (SOLID: OCP)
+const MOVIMIENTOS_PERMITIDOS: ReadonlyMap<TipoBandeja, ReadonlyArray<TipoBandeja>> = new Map([
+  [TipoBandeja.ENTRADA, [TipoBandeja.ELIMINADOS]],
+  [TipoBandeja.ENVIADOS, [TipoBandeja.ELIMINADOS]],
+  [TipoBandeja.BORRADORES, [TipoBandeja.ELIMINADOS]],
+  [TipoBandeja.ELIMINADOS, []], // Solo se sale de eliminados mediante restaurar()
+]);
+
 export class GestorCorreos {
   private bandejas: Map<TipoBandeja, IBandeja<any>>;
   private papelera: BandejaEliminados<any>;
@@ -54,16 +62,34 @@ export class GestorCorreos {
   }
 
   recibir(correo: Correo): void {
+    const ubicacion = this.obtenerUbicacion(correo.id);
+    if (ubicacion) {
+      throw new Error(
+        `El correo con ID "${correo.id}" ya existe en el sistema (bandeja ${ubicacion}).`
+      );
+    }
     const bandejaEntrada = this.bandejas.get(TipoBandeja.ENTRADA)!;
     bandejaEntrada.agregar(correo);
   }
 
   guardarEnBorradores(correo: Correo): void {
+    const ubicacion = this.obtenerUbicacion(correo.id);
+    if (ubicacion) {
+      throw new Error(
+        `El elemento con ID "${correo.id}" ya existe en el sistema (bandeja ${ubicacion}).`
+      );
+    }
     const bandejaBorradores = this.bandejas.get(TipoBandeja.BORRADORES)!;
     bandejaBorradores.agregar(correo);
   }
 
   guardarBorrador(borrador: Borrador): void {
+    const ubicacion = this.obtenerUbicacion(borrador.id);
+    if (ubicacion) {
+      throw new Error(
+        `El elemento con ID "${borrador.id}" ya existe en el sistema (bandeja ${ubicacion}).`
+      );
+    }
     const bandejaBorradores = this.bandejas.get(TipoBandeja.BORRADORES)!;
     bandejaBorradores.agregar(borrador);
   }
@@ -127,6 +153,13 @@ export class GestorCorreos {
   }
 
   enviar(correo: Correo): void {
+    const ubicacion = this.obtenerUbicacion(correo.id);
+    if (ubicacion && ubicacion !== TipoBandeja.BORRADORES) {
+      throw new Error(
+        `No se puede enviar el correo con ID "${correo.id}" porque ya pertenece a la bandeja ${ubicacion}.`
+      );
+    }
+
     const bandejaBorradores = this.bandejas.get(TipoBandeja.BORRADORES)!;
     if (bandejaBorradores.contiene(correo.id)) {
       bandejaBorradores.quitar(correo.id);
@@ -151,6 +184,13 @@ export class GestorCorreos {
       return;
     }
 
+    const permitidos = MOVIMIENTOS_PERMITIDOS.get(ubicacionActual) ?? [];
+    if (!permitidos.includes(destino)) {
+      throw new Error(
+        `Movimiento no permitido: no se puede mover un correo desde ${ubicacionActual} hacia ${destino}.`
+      );
+    }
+
     const bandejaOrigen = this.bandejas.get(ubicacionActual)!;
     const correo = bandejaOrigen.quitar(idCorreo)!;
 
@@ -169,9 +209,9 @@ export class GestorCorreos {
     }
 
     const bandejaOrigen = this.bandejas.get(ubicacionActual)!;
-    const correo = bandejaOrigen.quitar(idCorreo)!;
+    const elemento = bandejaOrigen.quitar(idCorreo)!;
 
-    this.papelera.agregarConOrigen(correo, ubicacionActual);
+    this.papelera.agregarConOrigen(elemento, ubicacionActual);
   }
 
   restaurar(idCorreo: string): void {

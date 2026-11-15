@@ -61,15 +61,13 @@ describe('GestorCorreos (RF-02 y RF-06: Envio y Gestion de Bandejas)', () => {
   });
 
   describe('Movimiento y Pertenencia Unica entre Bandejas (RF-06)', () => {
-    it('un correo debe pertenecer a una unica bandeja fisica a la vez al moverse', () => {
+    it('deberia rechazar mover un correo entre bandejas activas directamente', () => {
       gestor.recibir(correo);
       expect(gestor.obtenerUbicacion(correo.id)).toBe(TipoBandeja.ENTRADA);
 
-      gestor.mover(correo.id, TipoBandeja.ENVIADOS);
-
-      expect(gestor.obtenerBandeja(TipoBandeja.ENTRADA)).toHaveLength(0);
-      expect(gestor.obtenerBandeja(TipoBandeja.ENVIADOS)).toHaveLength(1);
-      expect(gestor.obtenerUbicacion(correo.id)).toBe(TipoBandeja.ENVIADOS);
+      expect(() => gestor.mover(correo.id, TipoBandeja.ENVIADOS)).toThrow(
+        'Movimiento no permitido: no se puede mover un correo desde ENTRADA hacia ENVIADOS.'
+      );
     });
 
     it('deberia lanzar error si se intenta mover un correo inexistente', () => {
