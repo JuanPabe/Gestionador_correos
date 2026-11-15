@@ -1,4 +1,6 @@
 import { Correo } from '../domain/models/Correo';
+import { Contacto } from '../domain/models/Contacto';
+import { Borrador } from '../domain/models/Borrador';
 import {
   Bandeja,
   BandejaEliminados,
@@ -59,6 +61,69 @@ export class GestorCorreos {
   guardarEnBorradores(correo: Correo): void {
     const bandejaBorradores = this.bandejas.get(TipoBandeja.BORRADORES)!;
     bandejaBorradores.agregar(correo);
+  }
+
+  guardarBorrador(borrador: Borrador): void {
+    const bandejaBorradores = this.bandejas.get(TipoBandeja.BORRADORES)!;
+    bandejaBorradores.agregar(borrador);
+  }
+
+  obtenerBorrador(id: string): Borrador | undefined {
+    const bandejaBorradores = this.bandejas.get(TipoBandeja.BORRADORES)!;
+    const elemento = bandejaBorradores.obtenerPorId(id);
+    return elemento instanceof Borrador ? elemento : undefined;
+  }
+
+  editarBorrador(
+    id: string,
+    cambios: {
+      asunto?: string;
+      cuerpo?: string;
+      remitente?: Contacto;
+      agregarDestinatario?: Contacto;
+      quitarDestinatario?: string;
+    }
+  ): Borrador {
+    const borrador = this.obtenerBorrador(id);
+    if (!borrador) {
+      throw new Error(`No se encontro el borrador con id "${id}".`);
+    }
+
+    if (cambios.asunto !== undefined) {
+      borrador.editarAsunto(cambios.asunto);
+    }
+    if (cambios.cuerpo !== undefined) {
+      borrador.editarCuerpo(cambios.cuerpo);
+    }
+    if (cambios.remitente !== undefined) {
+      borrador.definirRemitente(cambios.remitente);
+    }
+    if (cambios.agregarDestinatario !== undefined) {
+      borrador.agregarDestinatario(cambios.agregarDestinatario);
+    }
+    if (cambios.quitarDestinatario !== undefined) {
+      borrador.quitarDestinatario(cambios.quitarDestinatario);
+    }
+
+    return borrador;
+  }
+
+  enviarBorrador(id: string): Correo {
+    const borrador = this.obtenerBorrador(id);
+    if (!borrador) {
+      throw new Error(`No se encontro el borrador con id "${id}".`);
+    }
+
+    // Valida y convierte a Correo inmutable (RF-02 y RF-07)
+    const correo = borrador.aCorreo();
+
+    const bandejaBorradores = this.bandejas.get(TipoBandeja.BORRADORES)!;
+    bandejaBorradores.quitar(id);
+
+    const bandejaEnviados = this.bandejas.get(TipoBandeja.ENVIADOS)!;
+    bandejaEnviados.agregar(correo);
+
+    return correo;
   }
 
   enviar(correo: Correo): void {
