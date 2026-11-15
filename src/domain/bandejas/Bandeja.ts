@@ -1,4 +1,5 @@
 import { Correo } from '../models/Correo';
+import { ElementoConId, IBandeja } from './IBandeja';
 
 export enum TipoBandeja {
   ENTRADA = 'ENTRADA',
@@ -7,13 +8,14 @@ export enum TipoBandeja {
   ELIMINADOS = 'ELIMINADOS',
 }
 
-export class Bandeja {
+// Implementacion generica de bandeja fisica que satisface el contrato IBandeja (SOLID: OCP y LSP)
+export class Bandeja<T extends ElementoConId = Correo> implements IBandeja<T> {
   private readonly _tipo: TipoBandeja;
-  protected readonly _correos: Map<string, Correo>;
+  protected readonly _correos: Map<string, T>;
 
   constructor(tipo: TipoBandeja) {
     this._tipo = tipo;
-    this._correos = new Map<string, Correo>();
+    this._correos = new Map<string, T>();
   }
 
   get tipo(): TipoBandeja {
@@ -28,22 +30,22 @@ export class Bandeja {
     return this._correos.has(idCorreo);
   }
 
-  obtenerPorId(idCorreo: string): Correo | undefined {
+  obtenerPorId(idCorreo: string): T | undefined {
     return this._correos.get(idCorreo);
   }
 
-  obtenerTodos(): ReadonlyArray<Correo> {
+  obtenerTodos(): ReadonlyArray<T> {
     return Array.from(this._correos.values());
   }
 
-  agregar(correo: Correo): void {
+  agregar(correo: T): void {
     if (this._correos.has(correo.id)) {
       throw new Error(`El correo con ID "${correo.id}" ya existe en esta bandeja.`);
     }
     this._correos.set(correo.id, correo);
   }
 
-  quitar(idCorreo: string): Correo | null {
+  quitar(idCorreo: string): T | null {
     const correo = this._correos.get(idCorreo);
     if (!correo) {
       return null;
@@ -53,12 +55,13 @@ export class Bandeja {
   }
 }
 
-export interface RegistroEliminado {
-  correo: Correo;
+export interface RegistroEliminado<T extends ElementoConId = Correo> {
+  correo: T;
   bandejaOrigen: TipoBandeja;
 }
 
-export class BandejaEliminados extends Bandeja {
+// Subclase especializada de papelera que recuerda la bandeja fisica de procedencia (POO: Herencia)
+export class BandejaEliminados<T extends ElementoConId = Correo> extends Bandeja<T> {
   private readonly _origenes: Map<string, TipoBandeja>;
 
   constructor() {
@@ -66,7 +69,7 @@ export class BandejaEliminados extends Bandeja {
     this._origenes = new Map<string, TipoBandeja>();
   }
 
-  agregarConOrigen(correo: Correo, bandejaOrigen: TipoBandeja): void {
+  agregarConOrigen(correo: T, bandejaOrigen: TipoBandeja): void {
     if (this._correos.has(correo.id)) {
       throw new Error(`El correo con ID "${correo.id}" ya existe en la papelera de eliminados.`);
     }
@@ -78,7 +81,7 @@ export class BandejaEliminados extends Bandeja {
     return this._origenes.get(idCorreo);
   }
 
-  restaurar(idCorreo: string): RegistroEliminado | null {
+  restaurar(idCorreo: string): RegistroEliminado<T> | null {
     const bandejaOrigen = this._origenes.get(idCorreo);
     if (!bandejaOrigen) {
       return null;
@@ -94,7 +97,7 @@ export class BandejaEliminados extends Bandeja {
     };
   }
 
-  override quitar(idCorreo: string): Correo | null {
+  override quitar(idCorreo: string): T | null {
     this._origenes.delete(idCorreo);
     return super.quitar(idCorreo);
   }

@@ -4,24 +4,42 @@ import {
   BandejaEliminados,
   TipoBandeja,
 } from '../domain/bandejas/Bandeja';
+import { IBandeja } from '../domain/bandejas/IBandeja';
+
+export interface OpcionesGestorCorreos {
+  bandejaEntrada?: IBandeja<any>;
+  bandejaEnviados?: IBandeja<any>;
+  bandejaBorradores?: IBandeja<any>;
+  bandejaEliminados?: BandejaEliminados<any>;
+}
 
 export class GestorCorreos {
-  private bandejas: Map<TipoBandeja, Bandeja>;
-  private papelera: BandejaEliminados;
+  private bandejas: Map<TipoBandeja, IBandeja<any>>;
+  private papelera: BandejaEliminados<any>;
 
-  constructor() {
-    this.bandejas = new Map<TipoBandeja, Bandeja>();
-    this.bandejas.set(TipoBandeja.ENTRADA, new Bandeja(TipoBandeja.ENTRADA));
-    this.bandejas.set(TipoBandeja.ENVIADOS, new Bandeja(TipoBandeja.ENVIADOS));
-    this.bandejas.set(TipoBandeja.BORRADORES, new Bandeja(TipoBandeja.BORRADORES));
+  // Inyeccion de dependencias desacoplada con valores por defecto (SOLID: DIP)
+  constructor(opciones: OpcionesGestorCorreos = {}) {
+    this.bandejas = new Map<TipoBandeja, IBandeja<any>>();
+    this.bandejas.set(
+      TipoBandeja.ENTRADA,
+      opciones.bandejaEntrada ?? new Bandeja(TipoBandeja.ENTRADA)
+    );
+    this.bandejas.set(
+      TipoBandeja.ENVIADOS,
+      opciones.bandejaEnviados ?? new Bandeja(TipoBandeja.ENVIADOS)
+    );
+    this.bandejas.set(
+      TipoBandeja.BORRADORES,
+      opciones.bandejaBorradores ?? new Bandeja(TipoBandeja.BORRADORES)
+    );
 
-    this.papelera = new BandejaEliminados();
+    this.papelera = opciones.bandejaEliminados ?? new BandejaEliminados();
     this.bandejas.set(TipoBandeja.ELIMINADOS, this.papelera);
   }
 
   obtenerBandeja(tipo: TipoBandeja): ReadonlyArray<Correo> {
     const bandeja = this.bandejas.get(tipo);
-    return bandeja ? bandeja.obtenerTodos() : [];
+    return bandeja ? (bandeja.obtenerTodos() as ReadonlyArray<Correo>) : [];
   }
 
   obtenerUbicacion(idCorreo: string): TipoBandeja | undefined {
