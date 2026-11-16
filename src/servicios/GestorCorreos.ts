@@ -15,6 +15,13 @@ import {
   esFavorito,
   textoLibreContiene,
 } from '../domain/filtros/PredicadosCorreo';
+import {
+  obtenerAsuntos as extraerAsuntos,
+  contarNoLeidos,
+  porcentajeLeidos,
+  contarPorRemitente,
+  ResumenEstadisticas,
+} from './Estadisticas';
 
 export interface OpcionesGestorCorreos {
   bandejaEntrada?: IBandeja<any>;
@@ -298,5 +305,22 @@ export class GestorCorreos {
     }
     const favoritos = this.obtenerFavoritos();
     return filtro.aplicar(favoritos);
+  }
+
+  // Obtiene la lista de asuntos de una bandeja mediante map funcional (RF-10)
+  obtenerAsuntos(tipo: TipoBandeja): ReadonlyArray<string> {
+    const correos = this.obtenerBandeja(tipo);
+    return extraerAsuntos(correos);
+  }
+
+  // Genera metricas estadisticas sobre la bandeja usando reduce funcional (RF-10)
+  obtenerEstadisticas(tipo: TipoBandeja): ResumenEstadisticas {
+    const correos = this.obtenerBandeja(tipo);
+    return {
+      total: correos.length,
+      noLeidos: contarNoLeidos(correos),
+      porcentajeLeidos: porcentajeLeidos(correos),
+      porRemitente: contarPorRemitente(correos),
+    };
   }
 }

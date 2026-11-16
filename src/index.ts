@@ -10,3 +10,4 @@ export * from './domain/filtros/RegistroFiltros';
 export * from './domain/filtros/FiltrosPredefinidos';
 export * from './servicios/AgendaContactos';
 export * from './servicios/GestorCorreos';
+export * from './servicios/Estadisticas';
