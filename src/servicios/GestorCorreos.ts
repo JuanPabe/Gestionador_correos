@@ -7,13 +7,21 @@ import {
   TipoBandeja,
 } from '../domain/bandejas/Bandeja';
 import { IBandeja } from '../domain/bandejas/IBandeja';
-import { textoLibreContiene } from '../domain/filtros/PredicadosCorreo';
+import { Filtro } from '../domain/filtros/Filtro';
+import { RegistroFiltros } from '../domain/filtros/RegistroFiltros';
+import { not } from '../domain/filtros/Predicados';
+import {
+  estaLeido,
+  esFavorito,
+  textoLibreContiene,
+} from '../domain/filtros/PredicadosCorreo';
 
 export interface OpcionesGestorCorreos {
   bandejaEntrada?: IBandeja<any>;
   bandejaEnviados?: IBandeja<any>;
   bandejaBorradores?: IBandeja<any>;
   bandejaEliminados?: BandejaEliminados<any>;
+  registroFiltros?: RegistroFiltros;
 }
 
 // Matriz declarativa de transiciones fisicas permitidas entre bandejas (SOLID: OCP)
@@ -27,6 +35,7 @@ const MOVIMIENTOS_PERMITIDOS: ReadonlyMap<TipoBandeja, ReadonlyArray<TipoBandeja
 export class GestorCorreos {
   private bandejas: Map<TipoBandeja, IBandeja<any>>;
   private papelera: BandejaEliminados<any>;
+  private registroFiltros: RegistroFiltros;
 
   // Inyeccion de dependencias desacoplada con valores por defecto (SOLID: DIP)
   constructor(opciones: OpcionesGestorCorreos = {}) {
@@ -46,6 +55,8 @@ export class GestorCorreos {
 
     this.papelera = opciones.bandejaEliminados ?? new BandejaEliminados();
     this.bandejas.set(TipoBandeja.ELIMINADOS, this.papelera);
+
+    this.registroFiltros = opciones.registroFiltros ?? new RegistroFiltros();
   }
 
   obtenerBandeja(tipo: TipoBandeja): ReadonlyArray<Correo> {
@@ -225,11 +236,13 @@ export class GestorCorreos {
     bandejaDestino.agregar(restaurado.correo);
   }
 
+  // Refactor funcional: filtra correos no leidos usando combinador not(estaLeido) (RF-08)
   obtenerNoLeidos(tipo: TipoBandeja): ReadonlyArray<Correo> {
     const correos = this.obtenerBandeja(tipo);
-    return correos.filter((correo) => !correo.leido);
+    return correos.filter(not(estaLeido));
   }
 
+  // Refactor funcional: filtra favoritos activos usando predicado puro esFavorito (RF-09)
   obtenerFavoritos(): ReadonlyArray<Correo> {
     const bandejasActivas: TipoBandeja[] = [
       TipoBandeja.ENTRADA,
@@ -242,7 +255,7 @@ export class GestorCorreos {
       todosLosActivos.push(...this.obtenerBandeja(tipo));
     }
 
-    return todosLosActivos.filter((correo) => correo.favorito);
+    return todosLosActivos.filter(esFavorito);
   }
 
   // Busqueda libre funcional e inmutable sobre la Bandeja de Entrada (RF-04)
@@ -253,5 +266,37 @@ export class GestorCorreos {
     const correosEntrada = this.obtenerBandeja(TipoBandeja.ENTRADA);
     const predicado = textoLibreContiene(texto);
     return correosEntrada.filter(predicado);
+  }
+
+  // Registro y aplicacion dinamica de filtros sobre cualquier bandeja (RF-05)
+  registrarFiltro(filtro: Filtro): void {
+    this.registroFiltros.registrar(filtro);
+  }
+
+  obtenerFiltro(nombre: string): Filtro | undefined {
+    return this.registroFiltros.obtener(nombre);
+  }
+
+  listarFiltros(): ReadonlyArray<Filtro> {
+    return this.registroFiltros.listar();
+  }
+
+  aplicarFiltro(nombre: string, tipoBandeja: TipoBandeja): ReadonlyArray<Correo> {
+    const filtro = this.registroFiltros.obtener(nombre);
+    if (!filtro) {
+      throw new Error(`No se encontro el filtro con nombre "${nombre}".`);
+    }
+    const correos = this.obtenerBandeja(tipoBandeja);
+    return filtro.aplicar(correos);
+  }
+
+  // Permite combinar filtros dinamicamente dentro de la vista de favoritos (RF-09)
+  aplicarFiltroEnFavoritos(nombre: string): ReadonlyArray<Correo> {
+    const filtro = this.registroFiltros.obtener(nombre);
+    if (!filtro) {
+      throw new Error(`No se encontro el filtro con nombre "${nombre}".`);
+    }
+    const favoritos = this.obtenerFavoritos();
+    return filtro.aplicar(favoritos);
   }
 }

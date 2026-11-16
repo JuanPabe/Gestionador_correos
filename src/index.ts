@@ -7,5 +7,6 @@ export * from './domain/filtros/Predicados';
 export * from './domain/filtros/PredicadosCorreo';
 export * from './domain/filtros/Filtro';
 export * from './domain/filtros/RegistroFiltros';
+export * from './domain/filtros/FiltrosPredefinidos';
 export * from './servicios/AgendaContactos';
 export * from './servicios/GestorCorreos';
