@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Contacto } from '../../../src/domain/models/Contacto';
+import { Correo } from '../../../src/domain/models/Correo';
 import { AgendaContactos } from '../../../src/servicios/AgendaContactos';
 
 describe('AgendaContactos (RF-03: Gestion de contactos)', () => {
@@ -50,6 +51,29 @@ describe('AgendaContactos (RF-03: Gestion de contactos)', () => {
     expect(agenda.consultarPorCorreo('juan@ucp.edu.ar')?.nombre).toBe('Juan Manuel Perez');
   });
 
+  it('deberia permitir modificar tambien el correo electronico de un contacto', () => {
+    agenda.agregar(contacto1);
+    const modificado = agenda.modificar(
+      'juan@ucp.edu.ar',
+      'Juan Perez Actualizado',
+      'juan.nuevo@ucp.edu.ar'
+    );
+
+    expect(modificado.nombre).toBe('Juan Perez Actualizado');
+    expect(modificado.correo).toBe('juan.nuevo@ucp.edu.ar');
+    expect(agenda.consultarPorCorreo('juan@ucp.edu.ar')).toBeUndefined();
+    expect(agenda.consultarPorCorreo('juan.nuevo@ucp.edu.ar')).toBe(modificado);
+  });
+
+  it('deberia rechazar modificar el correo si el nuevo correo ya pertenece a otro contacto', () => {
+    agenda.agregar(contacto1);
+    agenda.agregar(contacto2);
+
+    expect(() => {
+      agenda.modificar('juan@ucp.edu.ar', 'Juan Intento', 'maria@ucp.edu.ar');
+    }).toThrow('Ya existe otro contacto con el correo "maria@ucp.edu.ar".');
+  });
+
   it('deberia lanzar error al intentar modificar un contacto que no existe', () => {
     expect(() => {
       agenda.modificar('noexiste@ucp.edu.ar', 'Nuevo Nombre');
@@ -69,5 +93,27 @@ describe('AgendaContactos (RF-03: Gestion de contactos)', () => {
   it('deberia devolver false si se intenta eliminar un contacto inexistente', () => {
     const eliminado = agenda.eliminar('inexistente@ucp.edu.ar');
     expect(eliminado).toBe(false);
+  });
+
+  it('la eliminacion de un contacto de la agenda no debe eliminar ni alterar los correos historicos que lo referencien', () => {
+    agenda.agregar(contacto1);
+    agenda.agregar(contacto2);
+
+    const correoHistorico = new Correo({
+      id: 'c-historico-1',
+      asunto: 'Acta de examen',
+      cuerpo: 'Constancia historica',
+      remitente: contacto1,
+      destinatarios: [contacto2],
+    });
+
+    // Se elimina el contacto de la agenda
+    agenda.eliminar(contacto1.correo);
+    expect(agenda.consultarPorCorreo(contacto1.correo)).toBeUndefined();
+
+    // El correo historico conserva sus datos intactos
+    expect(correoHistorico.remitente.nombre).toBe('Juan Perez');
+    expect(correoHistorico.remitente.correo).toBe('juan@ucp.edu.ar');
+    expect(correoHistorico.destinatarios[0].nombre).toBe('Maria Gomez');
   });
 });
