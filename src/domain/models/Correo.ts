@@ -9,6 +9,7 @@ export interface PropiedadesCorreo {
   leido?: boolean;
   favorito?: boolean;
   fechaCreacion?: Date;
+  eliminadoPor?: string[]; // Para mantener compatibilidad con instancias existentes o persistencia
 }
 
 export class Correo {
@@ -20,6 +21,7 @@ export class Correo {
   private readonly _fechaCreacion: Date;
   private _leido: boolean;
   private _favorito: boolean;
+  private _eliminadoPor: Set<string>; //  Control de eliminación independiente por usuario
 
   constructor(propiedades: PropiedadesCorreo) {
     this.validar(propiedades);
@@ -33,6 +35,7 @@ export class Correo {
     this._leido = propiedades.leido ?? false;
     this._favorito = propiedades.favorito ?? false;
     this._fechaCreacion = propiedades.fechaCreacion ?? new Date();
+    this._eliminadoPor = new Set(propiedades.eliminadoPor ?? []);
   }
 
   get id(): string {
@@ -71,6 +74,10 @@ export class Correo {
     return this._fechaCreacion;
   }
 
+  get eliminadoPor(): string[] {
+    return Array.from(this._eliminadoPor);
+  }
+
   marcarComoLeido(): void {
     this._leido = true;
   }
@@ -85,6 +92,24 @@ export class Correo {
 
   desmarcarComoFavorito(): void {
     this._favorito = false;
+  }
+
+  /**
+   * Marca el correo como eliminado para un usuario específico (por su email o identificador)
+   * sin alterar la visibilidad para los demás participantes.
+   */
+  marcarComoEliminadoPara(emailUsuario: string): void {
+    if (emailUsuario && emailUsuario.trim().length > 0) {
+      this._eliminadoPor.add(emailUsuario.trim());
+    }
+  }
+
+  /**
+   * Verifica si el correo fue eliminado por un usuario específico.
+   */
+  estaEliminadoPara(emailUsuario: string): boolean {
+    if (!emailUsuario) return false;
+    return this._eliminadoPor.has(emailUsuario.trim());
   }
 
   private validar(propiedades: PropiedadesCorreo): void {
