@@ -217,7 +217,8 @@ export class GestorCorreos {
     bandejaDestino.agregar(correo);
   }
 
-  eliminar(idCorreo: string): void {
+ // Actualiza este método para recibir opcionalmente el email del usuario actual que realiza la acción
+  eliminar(idCorreo: string, emailUsuarioActual?: string): void {
     const ubicacionActual = this.obtenerUbicacion(idCorreo);
     if (!ubicacionActual) {
       throw new Error(`No se encontro el correo con id "${idCorreo}" para eliminar.`);
@@ -228,9 +229,41 @@ export class GestorCorreos {
     }
 
     const bandejaOrigen = this.bandejas.get(ubicacionActual)!;
-    const elemento = bandejaOrigen.quitar(idCorreo)!;
+    const elemento = bandejaOrigen.obtenerPorId(idCorreo); // Usamos obtenerPorId en lugar de quitar
 
-    this.papelera.agregarConOrigen(elemento, ubicacionActual);
+    if (!elemento) {
+      throw new Error(`No se encontro el elemento con id "${idCorreo}".`);
+    }
+
+    // Si es un Correo y tenemos el email del usuario, aplicamos la eliminación independiente
+    if (elemento instanceof Correo && emailUsuarioActual) {
+      elemento.marcarComoEliminadoPara(emailUsuarioActual);
+      
+      // Opcional: Solo si el correo fue eliminado por TODOS los participantes involucrados (remitente y destinatarios), 
+      // se podría remover físicamente del sistema o mandar a la papelera general. 
+      // Por ahora, simplemente se oculta para el usuario que lo borró.
+      return;
+    }
+
+    // Comportamiento por defecto (para borradores u otros elementos si no aplica el filtrado por usuario)
+    const elementoRemovido = bandejaOrigen.quitar(idCorreo)!;
+    this.papelera.agregarConOrigen(elementoRemovido, ubicacionActual);
+  }
+
+  // Modifica la obtención de bandejas para filtrar los correos eliminados por el usuario
+  obtenerBandejaParaUsuario(tipo: TipoBandeja, emailUsuario: string): ReadonlyArray<Correo> {
+    const bandeja = this.bandejas.get(tipo);
+    if (!bandeja) return [];
+
+    const elementos = bandeja.obtenerTodos();
+
+    // Filtramos los correos que hayan sido marcados como eliminados por este usuario específico
+    return (elementos as ReadonlyArray<any>).filter(item => {
+      if (item instanceof Correo) {
+        return !item.estaEliminadoPara(emailUsuario);
+      }
+      return true; // Para borradores u otros elementos que no sean correos
+    });
   }
 
   restaurar(idCorreo: string): void {
