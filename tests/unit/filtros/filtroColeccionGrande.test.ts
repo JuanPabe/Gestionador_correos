@@ -1,13 +1,13 @@
 /**
  * Test de filtros sobre una coleccion grande de 100 correos.
- *
+ 
  * Distribucion de los 100 correos:
  *   - Cada 3 correos (indices 0, 3, 6, ...) el remitente es del dominio "ucp.edu.ar"  → 34 correos
  *   - Cada 5 correos (indices 0, 5, 10, ...) el asunto contiene "Examen"              → 20 correos
  *   - Interseccion (multiplos de 15: 0, 15, 30...): UCP Y Examen                      → 7 correos
  *   - Union: UCP O Examen                                                              → 47 correos
  *   - UCP sin Examen (AND NOT)                                                         → 27 correos
- *
+ 
  * Verifica ademas:
  *   - Reutilizacion del filtro en distintas porciones de la coleccion
  *   - Comportamiento dinamico: marcar/desmarcar leido afecta resultados del filtro
@@ -23,10 +23,6 @@ import {
   estaLeido,
   remitenteConDominio,
 } from '../../../src/domain/filtros/PredicadosCorreo';
-
-// ---------------------------------------------------------------------------
-// Helpers de construccion
-// ---------------------------------------------------------------------------
 
 const remitenteUcp = new Contacto('Profesor UCP', 'profesor@ucp.edu.ar');
 const remitenteOtro = new Contacto('Alumno Otro', 'alumno@gmail.com');
@@ -50,9 +46,7 @@ function crearColeccion(): Correo[] {
   return Array.from({ length: 100 }, (_, i) => crearCorreo(i));
 }
 
-// ---------------------------------------------------------------------------
 // Suite principal
-// ---------------------------------------------------------------------------
 
 describe('Filtros sobre una coleccion de 100 correos', () => {
   let correos: Correo[];
@@ -61,9 +55,8 @@ describe('Filtros sobre una coleccion de 100 correos', () => {
     correos = crearColeccion();
   });
 
-  // -------------------------------------------------------------------------
-  // Conteos basicos
-  // -------------------------------------------------------------------------
+  
+  // Conteos 
 
   describe('conteos basicos de la coleccion', () => {
     it('la coleccion tiene exactamente 100 correos', () => {
@@ -83,9 +76,7 @@ describe('Filtros sobre una coleccion de 100 correos', () => {
     });
   });
 
-  // -------------------------------------------------------------------------
   // Filtro simple
-  // -------------------------------------------------------------------------
 
   describe('Filtro simple: remitente del dominio ucp.edu.ar', () => {
     it('devuelve 34 correos con remitenteConDominio', () => {
@@ -109,9 +100,8 @@ describe('Filtros sobre una coleccion de 100 correos', () => {
     });
   });
 
-  // -------------------------------------------------------------------------
   // Filtros compuestos (AND, OR, NOT)
-  // -------------------------------------------------------------------------
+
 
   describe('Filtros compuestos', () => {
     it('AND: UCP y Examen devuelve 7 correos (multiplos de 15)', () => {
@@ -148,9 +138,9 @@ describe('Filtros sobre una coleccion de 100 correos', () => {
     });
   });
 
-  // -------------------------------------------------------------------------
+
   // Comportamiento dinamico: marcar como leido afecta los resultados
-  // -------------------------------------------------------------------------
+ 
 
   describe('comportamiento dinamico: marcar correos como leido', () => {
     it('marcar correos como leidos reduce el conteo de no leidos en el filtro', () => {
@@ -191,9 +181,7 @@ describe('Filtros sobre una coleccion de 100 correos', () => {
     });
   });
 
-  // -------------------------------------------------------------------------
   // Inmutabilidad: aplicar el filtro no muta la coleccion original
-  // -------------------------------------------------------------------------
 
   describe('aplicar un filtro no muta la coleccion original', () => {
     it('la coleccion conserva 100 elementos despues de aplicar cualquier filtro', () => {
